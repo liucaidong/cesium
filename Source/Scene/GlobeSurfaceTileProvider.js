@@ -1667,6 +1667,7 @@ import TileSelectionResult from './TileSelectionResult.js';
         var imageryLen = tileImageryCollection.length;
 
         var cameraBelowTerrain = tileProvider._quadtree._cameraBelowTerrain;
+        var showSkirts = tileProvider.showSkirts && !cameraBelowTerrain;
         var backFaceCulling = tileProvider.backFaceCulling && !cameraBelowTerrain;
         var firstPassRenderState = backFaceCulling ? tileProvider._renderState : tileProvider._disableCullingRenderState;
         var otherPassesRenderState = backFaceCulling ? tileProvider._blendRenderState : tileProvider._disableCullingBlendRenderState;
@@ -1916,7 +1917,7 @@ import TileSelectionResult from './TileSelectionResult.js';
             surfaceShaderSetOptions.colorToAlpha = applyColorToAlpha;
 
             var count = surfaceTile.renderedMesh.indices.length;
-            if (!tileProvider.showSkirts) {
+            if (!showSkirts) {
                 count = surfaceTile.renderedMesh.indexCountWithoutSkirts;
             }
 
