@@ -627,11 +627,16 @@ import TileSelectionResult from './TileSelectionResult.js';
             return undefined;
         }
 
+        var tileWithMesh = tile;
+
         while (tile._lastSelectionResult === TileSelectionResult.REFINED) {
             tile = tileIfContainsCartographic(tile.southwestChild, cartographic) ||
                    tileIfContainsCartographic(tile.southeastChild, cartographic) ||
                    tileIfContainsCartographic(tile.northwestChild, cartographic) ||
                    tile.northeastChild;
+            if (defined(tile.data) && defined(tile.data.renderedMesh)) {
+                tileWithMesh = tile;
+            }
         }
 
         // This tile was either rendered or culled.
@@ -639,10 +644,12 @@ import TileSelectionResult from './TileSelectionResult.js';
         // e.g. when we're getting a height in order to place a billboard
         // on terrain, and the camera is looking at that same billboard.
         // The culled tile must have a valid mesh, though.
-        if (!defined(tile.data) || !defined(tile.data.renderedMesh)) {
+        if (!defined(tileWithMesh)) {
             // Tile was not rendered (culled).
             return undefined;
         }
+
+        tile = tileWithMesh;
 
         var ellipsoid = this._surface._tileProvider.tilingScheme.ellipsoid;
 

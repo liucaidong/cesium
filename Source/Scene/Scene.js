@@ -1709,7 +1709,7 @@ import View from './View.js';
         // TODO: The occluder is the top-level globe. When we add
         //       support for multiple central bodies, this should be the closest one.
         var globe = scene.globe;
-        if (scene._mode === SceneMode.SCENE3D && defined(globe) && globe.show) {
+        if (scene._mode === SceneMode.SCENE3D && defined(globe) && globe.show && !scene.camera.belowTerrain) {
             var ellipsoid = globe.ellipsoid;
             var minimumTerrainHeight = scene.frameState.minimumTerrainHeight;
             scratchOccluderBoundingSphere.radius = ellipsoid.minimumRadius + minimumTerrainHeight;
