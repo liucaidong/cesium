@@ -86,6 +86,9 @@ import TileSelectionResult from './TileSelectionResult.js';
         this._loadQueueTimeSlice = 5.0;
         this._tilesInvalidated = false;
 
+        this._tileContainingCameraPosition = undefined;
+        this._cameraBelowTerrain = false;
+
         this._addHeightCallbacks = [];
         this._removeHeightCallbacks = [];
 
@@ -515,6 +518,7 @@ import TileSelectionResult from './TileSelectionResult.js';
         }
 
         primitive._occluders.ellipsoid.cameraPosition = frameState.camera.positionWC;
+        primitive._tileContainingCameraPosition = undefined;
 
         var tile;
         var levelZeroTiles = primitive._levelZeroTiles;
@@ -545,7 +549,8 @@ import TileSelectionResult from './TileSelectionResult.js';
 
         primitive._cameraPositionCartographic = camera.positionCartographic;
         var cameraFrameOrigin = Matrix4.getTranslation(camera.transform, cameraOriginScratch);
-        primitive._cameraReferenceFrameOriginCartographic = primitive.tileProvider.tilingScheme.ellipsoid.cartesianToCartographic(cameraFrameOrigin, primitive._cameraReferenceFrameOriginCartographic);
+        var ellipsoid = primitive.tileProvider.tilingScheme.ellipsoid;
+        primitive._cameraReferenceFrameOriginCartographic = ellipsoid.cartesianToCartographic(cameraFrameOrigin, primitive._cameraReferenceFrameOriginCartographic);
 
         // Traverse in depth-first, near-to-far order.
         for (i = 0, len = levelZeroTiles.length; i < len; ++i) {
@@ -555,10 +560,23 @@ import TileSelectionResult from './TileSelectionResult.js';
                 queueTileLoad(primitive, primitive._tileLoadQueueHigh, tile, frameState);
                 ++debug.tilesWaitingForChildren;
             } else {
-                visitIfVisible(primitive, tile, tileProvider, frameState, occluders, false, rootTraversalDetails[i]);
+                visitIfVisible(primitive, tile, tileProvider, frameState, occluders, false, true, rootTraversalDetails[i]);
             }
         }
 
+        var tileContainingCameraPosition = primitive._tileContainingCameraPosition;
+        var cameraBelowTerrain = false;
+        if (defined(tileContainingCameraPosition)) {
+            scratchRay.origin = Cartesian3.clone(camera.positionWC, scratchRay.origin);
+            scratchRay.direction = ellipsoid.geodeticSurfaceNormal(camera.positionWC, scratchRay.direction);
+
+            var intersection = tileContainingCameraPosition.data.pick(scratchRay, frameState.mode, frameState.mapProjection, false, scratchPosition);
+            if (defined(intersection)) {
+                cameraBelowTerrain = true;
+            }
+        }
+
+        primitive._cameraBelowTerrain = cameraBelowTerrain;
         primitive._lastSelectionFrameNumber = frameNumber;
     }
 
@@ -650,9 +668,10 @@ import TileSelectionResult from './TileSelectionResult.js';
      * @param {QuadtreeTile} tile The tile to visit
      * @param {Boolean} ancestorMeetsSse True if a tile higher in the tile tree already met the SSE and we're refining further only
      *                  to maintain detail while that higher tile loads.
+     * @param {Boolean} parentContainsCameraPosition True if the parent tile's rectangle contains the camera position.
      * @param {TraversalDetails} traveralDetails On return, populated with details of how the traversal of this tile went.
      */
-    function visitTile(primitive, frameState, tile, ancestorMeetsSse, traversalDetails) {
+    function visitTile(primitive, frameState, tile, ancestorMeetsSse, parentContainsCameraPosition, traversalDetails) {
         var debug = primitive._debug;
 
         ++debug.tilesVisited;
@@ -786,7 +805,7 @@ import TileSelectionResult from './TileSelectionResult.js';
             var tilesToUpdateHeightsIndex = primitive._tileToUpdateHeights.length;
 
             // No need to add the children to the load queue because they'll be added (if necessary) when they're visited.
-            visitVisibleChildrenNearToFar(primitive, southwestChild, southeastChild, northwestChild, northeastChild, frameState, ancestorMeetsSse, traversalDetails);
+            visitVisibleChildrenNearToFar(primitive, southwestChild, southeastChild, northwestChild, northeastChild, frameState, ancestorMeetsSse, parentContainsCameraPosition, traversalDetails);
 
             // If no descendant tiles were added to the render list by the function above, it means they were all
             // culled even though this tile was deemed visible. That's pretty common.
@@ -869,7 +888,7 @@ import TileSelectionResult from './TileSelectionResult.js';
         traversalDetails.notYetRenderableCount = tile.renderable ? 0 : 1;
     }
 
-    function visitVisibleChildrenNearToFar(primitive, southwest, southeast, northwest, northeast, frameState, ancestorMeetsSse, traversalDetails) {
+    function visitVisibleChildrenNearToFar(primitive, southwest, southeast, northwest, northeast, frameState, ancestorMeetsSse, parentContainsCameraPosition, traversalDetails) {
         var cameraPosition = frameState.camera.positionCartographic;
         var tileProvider = primitive._tileProvider;
         var occluders = primitive._occluders;
@@ -883,29 +902,29 @@ import TileSelectionResult from './TileSelectionResult.js';
         if (cameraPosition.longitude < southwest.rectangle.east) {
             if (cameraPosition.latitude < southwest.rectangle.north) {
                 // Camera in southwest quadrant
-                visitIfVisible(primitive, southwest, tileProvider, frameState, occluders, ancestorMeetsSse, southwestDetails);
-                visitIfVisible(primitive, southeast, tileProvider, frameState, occluders, ancestorMeetsSse, southeastDetails);
-                visitIfVisible(primitive, northwest, tileProvider, frameState, occluders, ancestorMeetsSse, northwestDetails);
-                visitIfVisible(primitive, northeast, tileProvider, frameState, occluders, ancestorMeetsSse, northeastDetails);
+                visitIfVisible(primitive, southwest, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, southwestDetails);
+                visitIfVisible(primitive, southeast, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, southeastDetails);
+                visitIfVisible(primitive, northwest, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, northwestDetails);
+                visitIfVisible(primitive, northeast, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, northeastDetails);
             } else {
                 // Camera in northwest quadrant
-                visitIfVisible(primitive, northwest, tileProvider, frameState, occluders, ancestorMeetsSse, northwestDetails);
-                visitIfVisible(primitive, southwest, tileProvider, frameState, occluders, ancestorMeetsSse, southwestDetails);
-                visitIfVisible(primitive, northeast, tileProvider, frameState, occluders, ancestorMeetsSse, northeastDetails);
-                visitIfVisible(primitive, southeast, tileProvider, frameState, occluders, ancestorMeetsSse, southeastDetails);
+                visitIfVisible(primitive, northwest, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, northwestDetails);
+                visitIfVisible(primitive, southwest, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, southwestDetails);
+                visitIfVisible(primitive, northeast, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, northeastDetails);
+                visitIfVisible(primitive, southeast, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, southeastDetails);
             }
         } else if (cameraPosition.latitude < southwest.rectangle.north) {
             // Camera southeast quadrant
-            visitIfVisible(primitive, southeast, tileProvider, frameState, occluders, ancestorMeetsSse, southeastDetails);
-            visitIfVisible(primitive, southwest, tileProvider, frameState, occluders, ancestorMeetsSse, southwestDetails);
-            visitIfVisible(primitive, northeast, tileProvider, frameState, occluders, ancestorMeetsSse, northeastDetails);
-            visitIfVisible(primitive, northwest, tileProvider, frameState, occluders, ancestorMeetsSse, northwestDetails);
+            visitIfVisible(primitive, southeast, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, southeastDetails);
+            visitIfVisible(primitive, southwest, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, southwestDetails);
+            visitIfVisible(primitive, northeast, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, northeastDetails);
+            visitIfVisible(primitive, northwest, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, northwestDetails);
         } else {
             // Camera in northeast quadrant
-            visitIfVisible(primitive, northeast, tileProvider, frameState, occluders, ancestorMeetsSse, northeastDetails);
-            visitIfVisible(primitive, northwest, tileProvider, frameState, occluders, ancestorMeetsSse, northwestDetails);
-            visitIfVisible(primitive, southeast, tileProvider, frameState, occluders, ancestorMeetsSse, southeastDetails);
-            visitIfVisible(primitive, southwest, tileProvider, frameState, occluders, ancestorMeetsSse, southwestDetails);
+            visitIfVisible(primitive, northeast, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, northeastDetails);
+            visitIfVisible(primitive, northwest, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, northwestDetails);
+            visitIfVisible(primitive, southeast, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, southeastDetails);
+            visitIfVisible(primitive, southwest, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, southwestDetails);
         }
 
         quadDetails.combine(traversalDetails);
@@ -917,9 +936,22 @@ import TileSelectionResult from './TileSelectionResult.js';
                (defined(primitive._cameraReferenceFrameOriginCartographic) && Rectangle.contains(rectangle, primitive._cameraReferenceFrameOriginCartographic));
     }
 
-    function visitIfVisible(primitive, tile, tileProvider, frameState, occluders, ancestorMeetsSse, traversalDetails) {
+    function containsCameraPosition(primitive, tile) {
+        var rectangle = tile.rectangle;
+        return defined(primitive._cameraPositionCartographic) && Rectangle.contains(rectangle, primitive._cameraPositionCartographic);
+    }
+
+    function visitIfVisible(primitive, tile, tileProvider, frameState, occluders, ancestorMeetsSse, parentContainsCameraPosition, traversalDetails) {
+        var tileContainsCameraPosition = parentContainsCameraPosition;
+        if (tileContainsCameraPosition) {
+            tileContainsCameraPosition = defined(tile.data) && defined(tile.data.renderedMesh) && containsCameraPosition(primitive, tile);
+            if (tileContainsCameraPosition) {
+                primitive._tileContainingCameraPosition = tile;
+            }
+        }
+
         if (tileProvider.computeTileVisibility(tile, frameState, occluders) !== Visibility.NONE) {
-            return visitTile(primitive, frameState, tile, ancestorMeetsSse, traversalDetails);
+            return visitTile(primitive, frameState, tile, ancestorMeetsSse, tileContainsCameraPosition, traversalDetails);
         }
 
         ++primitive._debug.tilesCulled;

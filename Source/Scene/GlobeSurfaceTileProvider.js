@@ -409,16 +409,14 @@ import TileSelectionResult from './TileSelectionResult.js';
                 },
                 blending : BlendingState.ALPHA_BLEND
             });
-        }
 
-        if (!this.backFaceCulling && !defined(this._disableCullingRenderState)) {
-            var rs = clone(this._renderState, true);
-            rs.cull.enabled = false;
-            this._disableCullingRenderState = RenderState.fromCache(rs);
+            var renderState = clone(this._renderState, true);
+            renderState.cull.enabled = false;
+            this._disableCullingRenderState = RenderState.fromCache(renderState);
 
-            rs = clone(this._blendRenderState, true);
-            rs.cull.enabled = false;
-            this._disableCullingBlendRenderState = RenderState.fromCache(rs);
+            renderState = clone(this._blendRenderState, true);
+            renderState.cull.enabled = false;
+            this._disableCullingBlendRenderState = RenderState.fromCache(renderState);
         }
 
         // If this frame has a mix of loaded and fill tiles, we need to propagate
@@ -612,7 +610,7 @@ import TileSelectionResult from './TileSelectionResult.js';
         }
 
         var ortho3D = frameState.mode === SceneMode.SCENE3D && frameState.camera.frustum instanceof OrthographicFrustum;
-        if (frameState.mode === SceneMode.SCENE3D && !ortho3D && defined(occluders)) {
+        if (frameState.mode === SceneMode.SCENE3D && !ortho3D && defined(occluders) && !this._quadtree._cameraBelowTerrain) {
             var occludeePointInScaledSpace = surfaceTile.occludeePointInScaledSpace;
             if (!defined(occludeePointInScaledSpace)) {
                 return intersection;
@@ -1668,8 +1666,10 @@ import TileSelectionResult from './TileSelectionResult.js';
         var imageryIndex = 0;
         var imageryLen = tileImageryCollection.length;
 
-        var firstPassRenderState = tileProvider.backFaceCulling ? tileProvider._renderState : tileProvider._disableCullingRenderState;
-        var otherPassesRenderState = tileProvider.backFaceCulling ? tileProvider._blendRenderState : tileProvider._disableCullingBlendRenderState;
+        var cameraBelowTerrain = tileProvider._quadtree._cameraBelowTerrain;
+        var backFaceCulling = tileProvider.backFaceCulling && !cameraBelowTerrain;
+        var firstPassRenderState = backFaceCulling ? tileProvider._renderState : tileProvider._disableCullingRenderState;
+        var otherPassesRenderState = backFaceCulling ? tileProvider._blendRenderState : tileProvider._disableCullingBlendRenderState;
         var renderState = firstPassRenderState;
 
         var initialColor = tileProvider._firstPassInitialColor;
