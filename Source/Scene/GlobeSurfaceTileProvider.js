@@ -548,7 +548,7 @@ import TileSelectionResult from './TileSelectionResult.js';
         var distance = this.computeDistanceToTile(tile, frameState);
         tile._distance = distance;
 
-        if (frameState.fog.enabled) {
+        if (frameState.fog.enabled && !frameState.camera.belowTerrain) {
             if (CesiumMath.fog(distance, frameState.fog.density) >= 1.0) {
                 // Tile is completely in fog so return that it is not visible.
                 return Visibility.NONE;
@@ -1539,11 +1539,13 @@ import TileSelectionResult from './TileSelectionResult.js';
             waterMaskTranslationAndScale = surfaceTile.fill.waterMaskTranslationAndScale;
         }
 
+        var cameraBelowTerrain = frameState.camera.belowTerrain;
+
         var showReflectiveOcean = tileProvider.hasWaterMask && defined(waterMaskTexture);
         var oceanNormalMap = tileProvider.oceanNormalMap;
         var showOceanWaves = showReflectiveOcean && defined(oceanNormalMap);
         var hasVertexNormals = tileProvider.terrainProvider.ready && tileProvider.terrainProvider.hasVertexNormals;
-        var enableFog = frameState.fog.enabled;
+        var enableFog = frameState.fog.enabled && !cameraBelowTerrain;
         var showGroundAtmosphere = tileProvider.showGroundAtmosphere;
         var castShadows = ShadowMode.castShadows(tileProvider.shadows);
         var receiveShadows = ShadowMode.receiveShadows(tileProvider.shadows);
@@ -1666,7 +1668,6 @@ import TileSelectionResult from './TileSelectionResult.js';
         var imageryIndex = 0;
         var imageryLen = tileImageryCollection.length;
 
-        var cameraBelowTerrain = frameState.camera.belowTerrain;
         var showSkirts = tileProvider.showSkirts && !cameraBelowTerrain;
         var backFaceCulling = tileProvider.backFaceCulling && !cameraBelowTerrain;
         var firstPassRenderState = backFaceCulling ? tileProvider._renderState : tileProvider._disableCullingRenderState;
