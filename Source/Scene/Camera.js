@@ -425,12 +425,7 @@ import SceneMode from './SceneMode.js';
         var ellipsoid = projection.ellipsoid;
 
         var screenSpaceCameraController = scene.screenSpaceCameraController;
-        var enableCollisionDetection = screenSpaceCameraController.enableCollisionDetection;
         var minimumZoomDistance = screenSpaceCameraController.minimumZoomDistance;
-
-        if (this._suspendTerrainAdjustment || !enableCollisionDetection) {
-            return;
-        }
 
         var transform;
         var magnitude;
@@ -1030,7 +1025,9 @@ import SceneMode from './SceneMode.js';
             this._suspendTerrainAdjustment = !globeFinishedUpdating;
         }
 
-        if (this._belowTerrain && globeFinishedUpdating) {
+        var enableCollisionDetection = this._scene.screenSpaceCameraController.enableCollisionDetection;
+
+        if (this._belowTerrain && !this._suspendTerrainAdjustment && enableCollisionDetection && globeFinishedUpdating) {
             this._setHeight(terrainHeight);
         }
     };
