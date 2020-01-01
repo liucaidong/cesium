@@ -418,9 +418,7 @@ import TweenCollection from './TweenCollection.js';
     var scratchCartesian = new Cartesian3();
     var scratchCartesianTwo = new Cartesian3();
     var scratchCartesianThree = new Cartesian3();
-    var scratchZoomViewOptions = {
-      orientation: new HeadingPitchRoll()
-    };
+    var scratchHeadingPitchRoll = new HeadingPitchRoll();
 
     function handleZoom(object, startPosition, movement, zoomFactor, distanceMeasure, unitPositionDotDirection) {
         var percentage = 1.0;
@@ -460,10 +458,10 @@ import TweenCollection from './TweenCollection.js';
         var camera = scene.camera;
         var mode = scene.mode;
 
-        var orientation = scratchZoomViewOptions.orientation;
-        orientation.heading = camera.heading;
-        orientation.pitch = camera.pitch;
-        orientation.roll = camera.roll;
+        var headingPitchRoll = scratchHeadingPitchRoll;
+        headingPitchRoll.heading = camera.heading;
+        headingPitchRoll.pitch = camera.pitch;
+        headingPitchRoll.roll = camera.roll;
 
         if (camera.frustum instanceof OrthographicFrustum) {
             if (Math.abs(distance) > 0.0) {
@@ -632,7 +630,7 @@ import TweenCollection from './TweenCollection.js';
                         Cartesian3.cross(camera.direction, camera.up, camera.right);
                         Cartesian3.cross(camera.right, camera.direction, camera.up);
 
-                        camera.setView(scratchZoomViewOptions);
+                        camera.setHeadingPitchRoll(headingPitchRoll);
                         return;
                     }
 
@@ -679,7 +677,7 @@ import TweenCollection from './TweenCollection.js';
             camera.zoomIn(distance);
         }
 
-        camera.setView(scratchZoomViewOptions);
+        camera.setHeadingPitchRoll(headingPitchRoll);
     }
 
     var translate2DStart = new Ray();

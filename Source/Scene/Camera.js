@@ -978,12 +978,13 @@ import SceneMode from './SceneMode.js';
         }
 
         var globe = this._scene.globe;
-        var globeFinishedUpdating = !defined(globe) || (globe._surface.tileProvider.ready && globe._surface._tileLoadQueueHigh.length === 0 && globe._surface._tileLoadQueueMedium.length === 0 && globe._surface._tileLoadQueueLow.length === 0 && globe._surface._debug.tilesWaitingForChildren === 0);
+        var globeFinishedUpdating = !defined(globe) || (globe._surface.tileProvider.ready && globe._surface._tileLoadQueueHigh.length === 0 && globe._surface._tileLoadQueueMedium.length === 0 && globe._surface._tileLoadQueueLow.length === 0 && globe._surface._debug.tilesWaitingForChildren === 0 && globe._surface._tilesToRender.length > 0);
         if (this._suspendTerrainAdjustment) {
             this._suspendTerrainAdjustment = !globeFinishedUpdating;
         }
 
-        if (globeFinishedUpdating) {
+
+        if (!this._suspendTerrainAdjustment) {
             this._adjustHeightForTerrain();
         }
     };
@@ -1197,7 +1198,7 @@ import SceneMode from './SceneMode.js';
 
     var scratchHpr = new HeadingPitchRoll();
     /**
-     * Sets the camera position, orientation and transform.
+     * Sets the camera position, orientation and transform. Suspends terrain adjustment until the globe is loaded
      *
      * @param {Object} options Object with the following properties:
      * @param {Cartesian3|Rectangle} [options.destination] The final position of the camera in WGS84 (world) coordinates or a rectangle that would be visible from a top-down view.
@@ -1285,6 +1286,20 @@ import SceneMode from './SceneMode.js';
             setViewCV(this, destination, scratchHpr, convert);
         }
     };
+
+    /**
+     * @private
+     */
+    Camera.prototype.setHeadingPitchRoll = function(headingPitcRoll) {
+        var mode = this._mode;
+        if (mode === SceneMode.SCENE3D) {
+            setView3D(this, this.positionWC, headingPitcRoll);
+        } else if (mode === SceneMode.SCENE2D) {
+            setView2D(this, this.positionWC, headingPitcRoll);
+        } else {
+            setViewCV(this, this.positionWC, headingPitcRoll);
+        }
+    }
 
     var pitchScratch = new Cartesian3();
     /**
