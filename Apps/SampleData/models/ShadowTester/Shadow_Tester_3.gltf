@@ -1,0 +1,125 @@
+{
+  "asset": {
+    "generator": "Khronos glTF Blender I/O v1.0.5",
+    "version": "2.0"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0
+    }
+  ],
+  "materials": [
+    {
+      "doubleSided": true,
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "metallicFactor": 1,
+        "roughnessFactor": 1
+      },
+      "emissiveFactor": [
+        0,
+        0,
+        0
+      ],
+      "alphaMode": "OPAQUE",
+      "name": "Material"
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Cube.003",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 1555,
+      "max": [
+        22.256607055664062,
+        12.410440444946289,
+        22.256607055664062
+      ],
+      "min": [
+        -22.256607055664062,
+        -0.6555333137512207,
+        -22.256607055664062
+      ],
+      "type": "VEC3",
+      "byteOffset": 0
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 1555,
+      "type": "VEC3",
+      "byteOffset": 0,
+      "min": [
+        -1,
+        -1,
+        -1
+      ],
+      "max": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "bufferView": 0,
+      "componentType": 5123,
+      "count": 6738,
+      "type": "SCALAR",
+      "byteOffset": 0
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 13476,
+      "byteOffset": 0,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 13476,
+      "byteLength": 18660
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 32136,
+      "byteLength": 18660
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "Shadow_Tester_3_data.bin",
+      "byteLength": 50796
+    }
+  ]
+}
